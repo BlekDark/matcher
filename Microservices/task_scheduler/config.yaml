@@ -1,0 +1,10 @@
+sources:
+  - [bet365, pinnacle]
+  - [stake, pinnacle]
+  - [stake, bet365]
+  - [stake, fonbet]
+  - [fonbet, olimp]
+  - [fonbet, betboom]
+  - [stake, parimatch_com]
+  - [fonbet, zenit]
+  - [bet365, parimatch_com]

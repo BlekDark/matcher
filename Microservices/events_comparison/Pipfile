@@ -1,0 +1,22 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+requests = "*"
+jellyfish = "*"
+textdistance = "*"
+fuzzywuzzy = "*"
+pandas = "*"
+fastapi = "*"
+uvicorn = "*"
+python-dotenv = "*"
+PyYAML = "*"
+polyleven = "*"
+fastdameraulevenshtein = "*"
+confluent-kafka = "*"
+aio-pika = "*"
+
+[dev-packages]
+pytest = "*"

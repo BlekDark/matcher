@@ -1,0 +1,166 @@
+version: "3.7"
+
+services:
+  backend_core_matcher:
+    image: backend-matcher:latest
+    build:
+      context: ./matcher-backend
+      dockerfile: Dockerfile.matcher
+    ports:
+      - target: 80
+        published: 8082
+        mode: ingress
+    env_file:
+      - ../Deployment/prod/matcher-backend.env
+    deploy:
+      replicas: 9
+
+  core_matcher:
+    image: core-matcher:latest
+    build:
+      context: ./events_comparison
+      dockerfile: Dockerfile.kafka
+    depends_on:
+      - backend_core_matcher
+    ports:
+      - target: 80
+        published: 8083
+        mode: ingress
+    env_file:
+      - ../Deployment/prod/core_matcher.env
+    deploy:
+      replicas: 9
+
+  backend_ui:
+    image: backend-user:latest
+    build:
+      context: ./matcher-backend
+      dockerfile: Dockerfile.user
+    ports:
+      - target: 80
+        published: 8084
+        mode: host
+    env_file:
+      - ../Deployment/prod/matcher-backend.env
+
+  frontend_ui:
+    image: frontend-matcher:latest
+    build:
+      context: ./matcher-frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - target: 80
+        published: 8085
+        mode: host
+    env_file:
+      - ../Deployment/prod/matcher-frontend.env
+
+  backend_test_matcher:
+    image: backend-matcher:latest
+    build:
+      context: ./matcher-backend
+      dockerfile: Dockerfile.matcher
+    ports:
+      - target: 80
+        published: 8086
+        mode: ingress
+    env_file:
+      - ../Deployment/prod/matcher-backend.env
+
+  test_matcher:
+    image: test_-matcher:latest
+    build:
+      context: ./events_comparison
+      dockerfile: Dockerfile.rest
+    depends_on:
+      - backend_test_matcher
+    ports:
+      - target: 80
+        published: 8087
+        mode: ingress
+    env_file:
+      - ../Deployment/prod/test_matcher.env
+    deploy:
+      replicas: 1
+
+  grafana:
+    image: grafana/grafana:8.5.3-ubuntu
+    ports:
+      - target: 3000
+        published: 3000
+        mode: host
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - grafana-configs:/etc/grafana
+    environment:
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+
+  prometheus:
+    image: prom/prometheus:v2.36.0
+    ports:
+      - target: 9090
+        published: 9090
+        mode: host
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+
+  node-exporter:
+    image: prom/node-exporter:v1.3.1
+    ports:
+      - target: 9100
+        published: 9100
+        mode: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - target: 8080
+        published: 8090
+        mode: host
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  nginx:
+    image: nginx_:latest
+    build:
+      context: ./nginx_
+      dockerfile: Dockerfile.nginx_
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    volumes:
+      - ./nginx_/nginx_.conf:/etc/nginx_/nginx_.conf:ro
+      - ./nginx_/ssl:/etc/nginx_/ssl:ro
+      - ./nginx_/.htpasswd:/etc/nginx_/.htpasswd:ro
+    depends_on:
+      - frontend_ui
+      - backend_ui
+      - grafana
+
+volumes:
+  grafana-data:
+  grafana-configs:
+  prometheus-data:
+  prometheus-configs:
+  prometheus:
+
+networks:
+  default:
+    external: true
+    name: matcher-network-v2
